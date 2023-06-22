@@ -1,0 +1,11 @@
+{
+  "name": "repo-migration",
+  "version": "1.0.0",
+  "description": "Script to take git repos in a directory and move them to github",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
