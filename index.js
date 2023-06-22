@@ -9,6 +9,7 @@ import util from "util";
  * Make sure your ssh keys are set up to give you access to github.
  * Get a personal key and store it in the variable below. See github docs for how. The
  * personal key needs permissions to create a repo and push to it.
+ * This script is idempotent. Running it twice on the same data should make no changes.
  */
 const PERSONAL_AUTH_KEY =
   "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";
@@ -34,9 +35,6 @@ const main = async () => {
     const gitDirectoryArray = await getRepoList();
 
     for (const directory of gitDirectoryArray) {
-      if (!directory) {
-        continue;
-      }
       process.chdir(directory);
       console.log(`processing: ${process.cwd()}`);
 
@@ -51,7 +49,11 @@ const main = async () => {
       // make sure the default branch is right
       console.log(` default_branch: ${defaultBranch}`);
       if (defaultBranch !== PREFERRED_DEFAULT_BRANCH_NAME) {
-        await setDefaultBranch(ORG_NAME, directory, PREFERRED_DEFAULT_BRANCH_NAME);
+        await setDefaultBranch(
+          ORG_NAME,
+          directory,
+          PREFERRED_DEFAULT_BRANCH_NAME
+        );
       }
 
       process.chdir(".."); // go back up to previous dir
@@ -106,11 +108,14 @@ const createRepo = async (org, name, description) => {
       squash_merge_commit_title: "COMMIT_OR_PR_TITLE",
       squash_merge_commit_message: "COMMIT_MESSAGES",
     });
+    console.log(`Repo ${name} created`);
     return result.data?.default_branch;
   } catch (err) {
     // if it's not because the repo already exists, then re-throw because it's a real error that we should examine.
     const errorMessages = err.response?.data?.errors.map((err) => err.message);
-    if (!errorMessages.includes("name already exists on this account")) {
+    if (errorMessages.includes("name already exists on this account")) {
+      console.log("name already exists on this account");
+    } else {
       console.error(err.message);
       throw new Error(err);
     }
@@ -118,7 +123,6 @@ const createRepo = async (org, name, description) => {
 };
 
 /**
- * 
  * @param {*} owner - the name of the org to which this repo belongs
  * @param {*} directory - the dir that contains the repo, ending with *.git
  * @param {*} newDefaultBranch - name of the branch you want to use as default
@@ -134,6 +138,7 @@ const setDefaultBranch = async (owner, directory, newDefaultBranch) => {
     console.log(JSON.stringify(result));
     throw new Error(result);
   }
+  console.log(`Set default branch to ${newDefaultBranch}`);
 };
 
 await main();
