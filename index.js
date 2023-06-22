@@ -44,10 +44,10 @@ const main = async () => {
       const { stderr, stdout } = await execPromise(
         `git push --mirror git@github.com:${ORG_NAME}/${directory}`
       );
-      console.log(stdout, stderr);
+      console.log(`${stdout}${stderr}`);
 
       // make sure the default branch is right
-      console.log(` default_branch: ${defaultBranch}`);
+      console.log(`default_branch: ${defaultBranch}`);
       if (!ACCEPTABLE_DEFAULT_BRANCH_NAMES.includes(defaultBranch)) {
         await setAcceptableDefaultBranch(
           ORG_NAME,
