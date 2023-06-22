@@ -14,7 +14,7 @@ import util from "util";
 const PERSONAL_AUTH_KEY =
   "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";
 const ORG_NAME = "MarekHealth";
-const ACCEPTABLE_DEFAULT_BRANCH_NAMES = ["master", "main"];
+const ACCEPTABLE_DEFAULT_BRANCH_NAMES = ["master", "main"]; // in order of preference
 const GIT_REPO_DIRECTORY = "/Users/jeremyparker/src/marek/all-repos";
 
 const { Octokit } = OctokitOrigin;
@@ -38,7 +38,7 @@ const main = async () => {
       process.chdir(directory);
       console.log(`------------------ \nprocessing: ${process.cwd()}`);
 
-      const defaultBranch =   await createRepo(ORG_NAME, directory, directory);
+      const defaultBranch = await createRepo(ORG_NAME, directory, directory);
 
       // push the local repo to the new one on github
       const { stderr, stdout } = await execPromise(
@@ -48,12 +48,13 @@ const main = async () => {
 
       // make sure the default branch is right
       console.log(` default_branch: ${defaultBranch}`);
-      await ensureAcceptableDefaultBranch(
-        ORG_NAME,
-        directory,
-        defaultBranch,
-        ACCEPTABLE_DEFAULT_BRANCH_NAMES
-      );
+      if (!ACCEPTABLE_DEFAULT_BRANCH_NAMES.includes(defaultBranch)) {
+        await setAcceptableDefaultBranch(
+          ORG_NAME,
+          directory,
+          ACCEPTABLE_DEFAULT_BRANCH_NAMES
+        );
+      }
 
       process.chdir(".."); // go back up to previous dir
     }
@@ -124,39 +125,36 @@ const createRepo = async (org, name, description) => {
 /**
  * @param {*} owner - the name of the org to which this repo belongs
  * @param {*} directory - the dir that contains the repo, ending with *.git
+ * @param {*} defaultBranch - the name of the current default branch
  * @param {*} newDefaultBranch - array of acceptable default branch names e.g. [master, main]
  */
-const ensureAcceptableDefaultBranch = async (
+const setAcceptableDefaultBranch = async (
   owner,
   directory,
-  defaultBranch,
   acceptableDefaultBranches
 ) => {
-  if (ACCEPTABLE_DEFAULT_BRANCH_NAMES.includes(defaultBranch)) {
-    return;
-  }
-
   const repo = directory.split(".")[0];
   const branchResponse = await octokit.rest.repos.listBranches({ owner, repo });
   const branches = branchResponse.data?.map((d) => d.name);
 
-  for (const name of acceptableDefaultBranches) {
-    if (branches.includes(name)) {
-      const result = await octokit.rest.repos.update({
-        owner,
-        repo,
-        default_branch: name,
-      });
-
-      if (result.status != 200) {
-        console.error(JSON.stringify(result));
-        throw new Error(result);
-      }
-
-      console.log(`Set default branch to ${name}`);
-      break;
-    }
+  const name = acceptableDefaultBranches.find(b => branches.includes(b));
+  if (!name) {
+    console.error("No acceptable default branch found!");
+    return;
   }
+
+  const result = await octokit.rest.repos.update({
+    owner,
+    repo,
+    default_branch: name,
+  });
+
+  if (result.status != 200) {
+    console.error(JSON.stringify(result));
+    throw new Error(result);
+  }
+
+  console.log(`Set default branch to ${name}`);
 };
 
 await main();
