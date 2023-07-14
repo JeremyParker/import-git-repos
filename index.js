@@ -7,12 +7,11 @@ import util from "util";
  * subdirectories ending with .git)
  * For each dir(repo) we'll create a new repo in github and push the local repo to it.
  * Make sure your ssh keys are set up to give you access to github.
- * Get a personal key and store it in the variable below. See github docs for how. The
- * personal key needs permissions to create a repo and push to it.
+ * Get a personal key and store it in the env variable PERSONAL_AUTH_KEY. See github
+ * docs for how. The personal key needs permissions to create a repo and push to it.
  * This script is idempotent. Running it twice on the same data should make no changes.
  */
-const PERSONAL_AUTH_KEY =
-  "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";
+const PERSONAL_AUTH_KEY = process.env.PERSONAL_AUTH_KEY;
 const ORG_NAME = "MarekHealth";
 const ACCEPTABLE_DEFAULT_BRANCH_NAMES = ["master", "main"]; // in order of preference
 const GIT_REPO_DIRECTORY = "/Users/jeremyparker/src/marek/all-repos";
@@ -137,7 +136,7 @@ const setAcceptableDefaultBranch = async (
   const branchResponse = await octokit.rest.repos.listBranches({ owner, repo });
   const branches = branchResponse.data?.map((d) => d.name);
 
-  const name = acceptableDefaultBranches.find(b => branches.includes(b));
+  const name = acceptableDefaultBranches.find((b) => branches.includes(b));
   if (!name) {
     console.error("No acceptable default branch found!");
     return;
